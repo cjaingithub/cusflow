@@ -1,0 +1,111 @@
+# Metarank Configuration for CusFlow
+# Learning-to-Rank service configuration
+
+# API settings
+api:
+  host: 0.0.0.0
+  port: 8080
+
+# State storage
+state:
+  type: memory
+  # For production, use Redis:
+  # type: redis
+  # host: redis
+  # port: 6379
+
+# Feature schema
+features:
+  # Item features
+  - name: item_popularity
+    type: number
+    scope: item
+    source: field
+    field: popularity_score
+    
+  - name: item_quality
+    type: number
+    scope: item
+    source: field
+    field: quality_score
+    
+  - name: item_price
+    type: number
+    scope: item
+    source: field
+    field: price
+    
+  - name: item_rating
+    type: number
+    scope: item
+    source: field
+    field: rating
+    
+  # User-item interaction features
+  - name: click_count
+    type: interaction_count
+    scope: item
+    interaction: click
+    
+  - name: purchase_count
+    type: interaction_count
+    scope: item
+    interaction: purchase
+    
+  # Session features
+  - name: position
+    type: position
+    scope: session
+    
+  # Time features  
+  - name: freshness
+    type: time_since
+    scope: item
+    source: field
+    field: created_at
+    
+# Models
+models:
+  # LambdaMART model
+  lambdamart:
+    type: lambdamart
+    backend: lightgbm
+    features:
+      - item_popularity
+      - item_quality
+      - item_price
+      - item_rating
+      - click_count
+      - purchase_count
+      - position
+      - freshness
+    weights:
+      click: 1.0
+      purchase: 3.0
+    
+  # XGBoost alternative
+  xgboost:
+    type: xgboost
+    features:
+      - item_popularity
+      - item_quality
+      - item_price
+      - item_rating
+    objective: rank:ndcg
+
+# Training settings
+train:
+  split: time
+  ratio: 0.8
+  
+# Serving settings
+serve:
+  timeout: 100ms
+  cache:
+    enabled: true
+    ttl: 300s
+    
+# Logging
+logging:
+  level: INFO
+  format: json

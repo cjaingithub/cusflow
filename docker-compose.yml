@@ -1,0 +1,178 @@
+# CusFlow Docker Compose Configuration
+# Production-ready setup with all services
+
+version: "3.9"
+
+services:
+  # ===========================================================================
+  # CusFlow API Service
+  # ===========================================================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: cusflow-api
+    ports:
+      - "8000:8000"
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - API_DEBUG=false
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - METARANK_HOST=metarank
+      - METARANK_PORT=8080
+      - MODEL_PATH=/app/models
+      - DATA_PATH=/app/data
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./models:/app/models
+      - ./data:/app/data
+      - ./reports:/app/reports
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - cusflow-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ===========================================================================
+  # Redis Feature Store
+  # ===========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: cusflow-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    networks:
+      - cusflow-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===========================================================================
+  # Metarank Ranking Engine (Optional)
+  # ===========================================================================
+  metarank:
+    image: metarank/metarank:latest
+    container_name: cusflow-metarank
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./metarank:/opt/metarank/config
+      - metarank-data:/opt/metarank/data
+    command: standalone --config /opt/metarank/config/config.yml
+    networks:
+      - cusflow-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ===========================================================================
+  # Development Environment
+  # ===========================================================================
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: cusflow-dev
+    ports:
+      - "8001:8000"
+      - "8888:8888"  # Jupyter
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - API_DEBUG=true
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    volumes:
+      - .:/app
+      - ./models:/app/models
+      - ./data:/app/data
+    depends_on:
+      - redis
+    networks:
+      - cusflow-network
+    profiles:
+      - dev
+    command: uvicorn src.api.app:app --host 0.0.0.0 --port 8000 --reload
+
+  # ===========================================================================
+  # Jupyter Notebook (Development)
+  # ===========================================================================
+  jupyter:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: cusflow-jupyter
+    ports:
+      - "8888:8888"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    volumes:
+      - .:/app
+      - ./notebooks:/app/notebooks
+    depends_on:
+      - redis
+    networks:
+      - cusflow-network
+    profiles:
+      - dev
+    command: jupyter notebook --ip=0.0.0.0 --port=8888 --no-browser --allow-root --NotebookApp.token=''
+
+  # ===========================================================================
+  # Model Training Worker (Optional)
+  # ===========================================================================
+  trainer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: cusflow-trainer
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MODEL_PATH=/app/models
+      - DATA_PATH=/app/data
+    volumes:
+      - ./models:/app/models
+      - ./data:/app/data
+      - ./reports:/app/reports
+    networks:
+      - cusflow-network
+    profiles:
+      - training
+    command: python scripts/train_model.py
+
+# ===========================================================================
+# Networks
+# ===========================================================================
+networks:
+  cusflow-network:
+    driver: bridge
+
+# ===========================================================================
+# Volumes
+# ===========================================================================
+volumes:
+  redis-data:
+  metarank-data:
