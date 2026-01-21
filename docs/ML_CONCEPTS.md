@@ -798,3 +798,107 @@ MRR = (1/3 + 1 + 1/5) / 3 = 0.51
 3. Johnson, J. et al. (2019). "Billion-scale similarity search with GPUs" (FAISS)
 4. Joachims, T. et al. (2017). "Unbiased Learning-to-Rank with Biased Feedback"
 5. Wang, X. et al. (2018). "Position Bias Estimation for Unbiased Learning to Rank"
+
+
+#################################################
+
+## Learning to Rank (LambdaMART)
+### Why LambdaMART?
+LambdaMART = Lambda gradients + MART (gradient boosting)
+It directly optimizes NDCG rather than predicting relevance scores:
+
+Standard Gradient: ∂Loss/∂s_i = predicted - actual  (doesn't optimize ranking)
+
+Lambda Gradient: λ_ij = -σ × sigmoid(s_i - s_j) × |ΔNDCG_ij|
+                        ↑                         ↑
+                    pair probability        ranking improvement
+
+Intuition: "Move item up if swapping would improve NDCG"
+
+#### Why LightGBM over XGBoost?
+
+Aspect	LightGBM	XGBoost
+Speed	10-20x faster	Baseline
+Tree Growth	Leaf-wise (best-first)	Level-wise
+Memory	Histogram-based (lower)	Higher
+Categorical	Native support	Needs encoding
+
+1M examples training:
+XGBoost: ~15 minutes
+LightGBM: ~45 seconds
+
+### Why Not Neural Networks?
+
+Factor	GBDT	Neural
+Inference	5-10ms	50-200ms
+Data needed	100K+	Millions
+Interpretability	Feature importance ✓	Black box
+
+
+## ANN vs KNN
+### KNN Problem: O(n × d) doesn't scale
+Items	KNN Query Time
+10K	5ms
+1M	500ms
+10M	5 seconds
+
+### ANN Solution: Trade accuracy for speed
+Exact KNN:  Returns ranks [1, 2, 3, 4, 5]
+ANN (95%):  Might return [1, 2, 4, 5, 7]
+Speedup:    100x faster
+
+For recommendations, 95% recall is fine! We're retrieving candidates for re-ranking.
+
+### FAISS Index Types
+
+# Small catalogs (<10K)
+index = faiss.IndexFlatIP(dim)  # Exact, O(n)
+
+# Medium (10K-1M)  
+index = faiss.IndexIVFFlat(quantizer, dim, nlist=100)  # O(n/nlist)
+
+# Large (>1M)
+index = faiss.IndexHNSWFlat(dim, M=32)  # O(log n)
+
+## Key Mathematical Formulas
+
+### NDCG (Primary Metric)
+
+DCG@K = Σ (2^rel_i - 1) / log₂(i + 1)
+NDCG@K = DCG@K / IDCG@K
+
+Example: ranking [rel=3, rel=1, rel=2]
+DCG = 7/1 + 1/1.58 + 3/2 = 9.13
+
+### Cosine Similarity (Embeddings)
+
+cos(a, b) = (a · b) / (||a|| × ||b||)
+
+Range: [-1, 1] where 1 = identical direction
+
+### Click Bias Correction (IPW)
+
+P(click) = P(examine | position) × P(relevant | item)
+
+Position bias: P(examine) = 1 / position^α
+
+IPW weight = 1 / P(examine | position)
+
+Intuition: A click at position 5 is "worth more" than at position 1
+
+## Feature Types
+
+Type	Examples	Purpose
+Item	star_rating, price, review_score	Item quality
+User	avg_spend, booking_history	Personalization
+Cross	price_vs_avg_spend	User-item fit
+Context	is_mobile, hour_of_day	Real-time signals
+GenAI	embedding_similarity	Semantic matching
+
+
+## Cross Feature Example
+
+# Does this item's price match user's typical spend?
+price_vs_avg = (item_price - user_avg_spend) / user_avg_spend
+
+# User avg=$150, Item=$200 → 0.33 (33% above average)
