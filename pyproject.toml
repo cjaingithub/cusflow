@@ -74,10 +74,10 @@ gpu = [
 cusflow = "src.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/yourusername/cusflow"
-Documentation = "https://github.com/yourusername/cusflow#readme"
-Repository = "https://github.com/yourusername/cusflow"
-Issues = "https://github.com/yourusername/cusflow/issues"
+Homepage = "https://github.com/cjaingithub/cusflow"
+Documentation = "https://github.com/cjaingithub/cusflow#readme"
+Repository = "https://github.com/cjaingithub/cusflow"
+Issues = "https://github.com/cjaingithub/cusflow/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src"]

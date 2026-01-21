@@ -62,7 +62,7 @@ CusFlow is a domain-agnostic recommendation platform that combines **Learning-to
 ### 1. Clone & Install
 
 ```bash
-git clone https://github.com/yourusername/cusflow.git
+git clone https://github.com/cjaingithub/cusflow.git
 cd cusflow
 
 # Create virtual environment
@@ -326,14 +326,47 @@ cusflow/
 
 ## 🧪 Running Tests
 
+### Quick Verification
+
 ```bash
+# Verify installation
+python -c "from src.config import get_settings; print('✓ CusFlow installed!')"
+
 # Run all tests
-make test
+pytest tests/ -v
 
 # Run with coverage
 pytest tests/ -v --cov=src --cov-report=html
+```
 
-# Run specific test file
+### Full Test Pipeline
+
+```bash
+# 1. Generate test data
+python -m src.cli generate-data --domain hotel --items 100 --users 50
+
+# 2. Train a model (quick)
+python scripts/train_model.py --estimators 50
+
+# 3. Evaluate
+python scripts/evaluate.py
+
+# 4. Run A/B simulation
+python scripts/run_ab_sim.py --generate
+
+# 5. Test the API (requires Redis)
+docker run -d -p 6379:6379 redis:7-alpine
+python scripts/load_features.py
+python -m src.cli serve &
+python scripts/demo_api.py
+```
+
+### Test Without Dependencies
+
+Most core functionality works without Redis or external APIs:
+
+```bash
+# These tests work standalone:
 pytest tests/test_ranking.py -v
 ```
 
