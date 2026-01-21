@@ -817,11 +817,13 @@ Intuition: "Move item up if swapping would improve NDCG"
 
 #### Why LightGBM over XGBoost?
 
-Aspect	LightGBM	XGBoost
-Speed	10-20x faster	Baseline
-Tree Growth	Leaf-wise (best-first)	Level-wise
-Memory	Histogram-based (lower)	Higher
-Categorical	Native support	Needs encoding
+
+| Aspect        | LightGBM                  | XGBoost        |
+|--------------|---------------------------|----------------|
+| Speed        | 10–20× faster             | Baseline       |
+| Tree Growth  | Leaf-wise (best-first)    | Level-wise     |
+| Memory       | Histogram-based (lower)   | Higher         |
+| Categorical  | Native support            | Needs encoding |
 
 1M examples training:
 XGBoost: ~15 minutes
@@ -829,18 +831,22 @@ LightGBM: ~45 seconds
 
 ### Why Not Neural Networks?
 
-Factor	GBDT	Neural
-Inference	5-10ms	50-200ms
-Data needed	100K+	Millions
-Interpretability	Feature importance ✓	Black box
+| Factor            | GBDT           | Neural Networks |
+|------------------|----------------|-----------------|
+| Inference        | 5–10 ms        | 50–200 ms       |
+| Data Needed      | 100K+          | Millions        |
+| Interpretability | Feature importance | Black box |
+
 
 
 ## ANN vs KNN
 ### KNN Problem: O(n × d) doesn't scale
-Items	KNN Query Time
-10K	5ms
-1M	500ms
-10M	5 seconds
+
+| Items | Query Time |
+|------:|-----------:|
+| 10K   | 5 ms       |
+| 1M    | 500 ms     |
+| 10M   | 5 seconds  |
 
 ### ANN Solution: Trade accuracy for speed
 Exact KNN:  Returns ranks [1, 2, 3, 4, 5]
@@ -888,13 +894,13 @@ Intuition: A click at position 5 is "worth more" than at position 1
 
 ## Feature Types
 
-Type	Examples	Purpose
-Item	star_rating, price, review_score	Item quality
-User	avg_spend, booking_history	Personalization
-Cross	price_vs_avg_spend	User-item fit
-Context	is_mobile, hour_of_day	Real-time signals
-GenAI	embedding_similarity	Semantic matching
-
+| Type     | Examples                          | Purpose           |
+|----------|-----------------------------------|-------------------|
+| Item     | star_rating, price, review_score  | Item quality      |
+| User     | avg_spend, booking_history        | Personalization   |
+| Cross    | price_vs_avg_spend                | User-item fit     |
+| Context  | is_mobile, hour_of_day            | Real-time signals |
+| GenAI    | embedding_similarity              | Semantic matching |
 
 ## Cross Feature Example
 
