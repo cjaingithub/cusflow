@@ -12,6 +12,10 @@ A comprehensive guide to the ML algorithms, features, and mathematical foundatio
 6. [Embeddings & Similarity](#6-embeddings--similarity)
 7. [Click Bias Correction](#7-click-bias-correction)
 8. [Evaluation Metrics](#8-evaluation-metrics)
+9. [Dynamic Pricing Optimization](#9-dynamic-pricing-optimization) ⭐ NEW
+10. [Multi-Armed Bandits](#10-multi-armed-bandits) ⭐ NEW
+11. [Hybrid Search (BM25 + Semantic)](#11-hybrid-search-bm25--semantic) ⭐ NEW
+12. [Expedia-Style Hotel Data](#12-expedia-style-hotel-data) ⭐ NEW
 
 ---
 
@@ -908,3 +912,177 @@ Intuition: A click at position 5 is "worth more" than at position 1
 price_vs_avg = (item_price - user_avg_spend) / user_avg_spend
 
 # User avg=$150, Item=$200 → 0.33 (33% above average)
+
+---
+
+## 9. Dynamic Pricing Optimization
+
+### Price Elasticity of Demand
+
+**Definition:** How much demand changes when price changes.
+
+```
+Elasticity (ε) = % change in demand / % change in price
+
+Typical values:
+- Hotels: -1.5 to -2.0 (elastic)
+- Luxury: -0.5 to -1.0 (inelastic)
+```
+
+### Demand Curve Formula
+
+```
+Q = Q₀ × (P / P₀)^ε
+
+Where:
+- Q = demand at price P
+- Q₀ = baseline demand at price P₀
+- ε = price elasticity (negative)
+```
+
+### Revenue Optimization
+
+```
+Revenue(P) = P × Q₀ × (P/P₀)^ε
+
+Optimal price for elastic demand:
+P_optimal ≈ P₀ × |ε| / (|ε| - 1)
+```
+
+### Price Factors
+
+| Factor | Multiplier | When |
+|--------|-----------|------|
+| Scarcity | 1.2-1.4x | Inventory < 30% |
+| Urgency | 1.15-1.3x | Days until event < 7 |
+| High Demand | 1.2x | Demand score > 0.8 |
+| Holiday | 1.35x | Peak periods |
+
+---
+
+## 10. Multi-Armed Bandits
+
+### The Exploration-Exploitation Dilemma
+
+```
+Exploitation: Always show current best → May miss better options
+Exploration: Try all variants equally → Waste on bad variants
+```
+
+### Thompson Sampling
+
+Bayesian approach using Beta distribution:
+
+```
+P(θ | data) ~ Beta(α, β)
+
+α = prior_successes + observed_successes
+β = prior_failures + observed_failures
+
+Algorithm:
+1. Sample from each arm's Beta posterior
+2. Select arm with highest sample
+```
+
+### UCB (Upper Confidence Bound)
+
+```
+UCB_i = μ̂_i + c × √(ln(n) / n_i)
+
+Where:
+- μ̂_i = empirical mean
+- n = total pulls
+- n_i = pulls for arm i
+- c = exploration coefficient (√2)
+```
+
+### LinUCB (Contextual)
+
+Uses user features for personalization:
+
+```
+E[reward | context x, arm a] = θ_a^T × x
+
+UCB = θ̂^T x + α√(x^T A^{-1} x)
+```
+
+---
+
+## 11. Hybrid Search (BM25 + Semantic)
+
+### BM25 Formula
+
+```
+BM25(D, Q) = Σ IDF(q_i) × (f(q_i,D) × (k₁+1)) / (f(q_i,D) + k₁×(1-b+b×|D|/avgdl))
+
+Where:
+- f(q_i, D) = term frequency
+- |D| = document length
+- avgdl = average document length
+- k₁ ≈ 1.5, b ≈ 0.75
+```
+
+### IDF (Inverse Document Frequency)
+
+```
+IDF(q) = log((N - n(q) + 0.5) / (n(q) + 0.5) + 1)
+
+Rare terms get higher weight!
+```
+
+### Hybrid Score Fusion
+
+```
+HybridScore = α × BM25_norm + (1-α) × Semantic_norm
+
+Typical: α = 0.4 (40% lexical, 60% semantic)
+```
+
+---
+
+## 12. Expedia-Style Hotel Data
+
+### Key Feature Categories
+
+| Category | Examples | Purpose |
+|----------|----------|---------|
+| Property | star_rating, review_score | Quality signals |
+| Location | distance_to_center, location_score | Convenience |
+| Pricing | price_per_night, value_score | Value |
+| Booking | rooms_available, bookings_24h | Urgency/social proof |
+| Amenities | has_pool, has_spa, amenity_count | Feature matching |
+
+### Cross Features (Most Predictive!)
+
+```python
+# Price alignment
+price_diff = item.price - user.avg_spend
+# -50 = $50 cheaper, +100 = $100 more expensive
+
+# Preference match
+star_match = float(item.stars == user.preferred_stars)
+# 1.0 = exact match, 0.0 = mismatch
+```
+
+### Position Bias Simulation
+
+```
+P(examine | position) = 1 / (1 + 0.2 × position)
+
+Position 1: 83% examination
+Position 5: 50%
+Position 10: 33%
+```
+
+---
+
+## Summary: Algorithm Choices
+
+| Choice | Reason |
+|--------|--------|
+| LambdaMART | Direct NDCG optimization |
+| LightGBM | Fastest GBDT, handles large data |
+| ANN (not KNN) | O(log n) vs O(n) at scale |
+| Thompson Sampling | Optimal exploration-exploitation |
+| Hybrid Search | BM25 precision + semantic recall |
+| Dynamic Pricing | Revenue optimization with elasticity |

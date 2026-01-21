@@ -54,6 +54,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         app.state.embedding_service = None
         print(f"⚠ Could not initialize embedding service: {e}")
     
+    # Initialize personalization bandit
+    try:
+        from src.personalization.bandits import PersonalizationBandit
+        app.state.personalization_bandit = PersonalizationBandit(
+            strategies=["collaborative", "content_based", "popularity", "hybrid"],
+            context_features=["price_sensitivity", "booking_history", "loyalty_tier", "is_mobile", "session_depth"],
+            algorithm="linucb",
+        )
+        print("✓ Personalization bandit initialized")
+    except Exception as e:
+        app.state.personalization_bandit = None
+        print(f"⚠ Could not initialize personalization bandit: {e}")
+    
     yield
     
     # Shutdown
@@ -121,7 +134,9 @@ def create_app() -> FastAPI:
     
     # Register routes
     from src.api.routes import router
+    from src.api.personalization_routes import router as personalization_router
     app.include_router(router)
+    app.include_router(personalization_router)
     
     return app
 
